@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Approvals - getMedic.</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="../utils/layout.js" defer></script>
+</head>
+<body class="bg-slate-50 font-sans text-slate-800 flex h-screen overflow-hidden">
+
+    <div id="sidebar-container" class="flex-shrink-0 z-20"></div>
+
+    <div class="flex-1 flex flex-col min-w-0">
+        <div id="topbar-container"></div>
+
+        <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+            <div class="max-w-6xl mx-auto space-y-6">
+                
+                <div class="mb-2">
+                    <h1 class="text-2xl font-bold text-slate-900">Adjudication Desk</h1>
+                    <p class="text-sm text-slate-500 mt-1">Review, audit, and manage medical claim requests from your team members.</p>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    
+                    <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center h-16">
+                        <h2 class="font-bold text-slate-800" id="tableTitle">Pending Requests</h2>
+                        
+                        <div id="bulkActions" class="hidden flex gap-2 animate-fade-in">
+                            <span class="text-xs font-bold text-slate-500 mr-2 flex items-center bg-white px-2 rounded border border-slate-200"><span id="selectedCount">0</span> selected</span>
+                            <button onclick="processBulk('Approved')" class="px-3 py-1.5 text-xs font-bold bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-600 hover:text-white transition shadow-sm border border-emerald-200 hover:border-emerald-600">
+                                <i class="fa-solid fa-check-double mr-1"></i> Approve Selected
+                            </button>
+                            <button onclick="processBulk('Rejected')" class="px-3 py-1.5 text-xs font-bold bg-red-100 text-red-700 rounded-lg hover:bg-red-600 hover:text-white transition shadow-sm border border-red-200 hover:border-red-600">
+                                <i class="fa-solid fa-ban mr-1"></i> Reject
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm text-slate-600 whitespace-nowrap">
+                            <thead class="bg-white border-b border-slate-200 text-slate-700 font-bold">
+                                <tr>
+                                    <th class="px-6 py-4 w-10 text-center">
+                                        <input type="checkbox" id="selectAll" class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer transition">
+                                    </th>
+                                    <th class="px-4 py-4">Employee</th>
+                                    <th class="px-6 py-4">Claim ID</th>
+                                    <th class="px-6 py-4">Category</th>
+                                    <th class="px-6 py-4 text-right">Amount</th>
+                                    <th class="px-6 py-4 text-center">Receipt</th>
+                                    <th class="px-6 py-4 text-center">Quick Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="approvalTableBody" class="divide-y divide-slate-100">
+                                </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const renderApprovals = () => {
+            const claims = JSON.parse(localStorage.getItem('medic_claims')) || [];
+            const pendingClaims = claims.filter(c => c.status === 'Pending');
+            const tbody = document.getElementById('approvalTableBody');
+            
+            tbody.innerHTML = '';
+            
+            // Sembunyikan Checkbox "Select All" jika tidak ada data
+            document.getElementById('selectAll').disabled = pendingClaims.length === 0;
+            document.getElementById('selectAll').checked = false;
+            toggleBulkToolbar(); 
+            
+            if(pendingClaims.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-slate-500 font-medium"><i class="fa-solid fa-mug-hot text-3xl mb-3 text-slate-300 block"></i>All caught up! No pending approvals.</td></tr>';
+                return;
+            }
+
+            pendingClaims.forEach(claim => {
+                const row = `
+                    <tr class="hover:bg-slate-50/80 transition group">
+                        <td class="px-6 py-4 text-center">
+                            <input type="checkbox" value="${claim.id}" class="claim-cb w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer transition">
+                        </td>
+                        <td class="px-4 py-4">
+                            <div class="flex items-center gap-3">
+                                <img src="https://ui-avatars.com/api/?name=${encodeURIComponent(claim.userName)}&background=random&color=fff" class="w-8 h-8 rounded-full shadow-sm">
+                                <div>
+                                    <p class="font-bold text-slate-900">${claim.userName}</p>
+                                    <p class="text-xs text-slate-500">${claim.userId}</p>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 font-bold text-slate-700">${claim.id}</td>
+                        <td class="px-6 py-4"><span class="px-2.5 py-1 bg-slate-100 text-slate-600 rounded-md text-xs font-bold">${claim.category}</span></td>
+                        <td class="px-6 py-4 text-right font-black text-slate-900">$${claim.amount.toFixed(2)}</td>
+                        <td class="px-6 py-4 text-center">
+                            <button class="text-slate-400 hover:text-blue-600 transition p-2 bg-white border border-slate-200 rounded shadow-sm group-hover:border-blue-200 group-hover:bg-blue-50"><i class="fa-solid fa-file-pdf"></i></button>
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            <div class="flex justify-center gap-2">
+                                <button onclick="processSingle('${claim.id}', 'Approved')" class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-500 hover:text-white border border-emerald-200 transition"><i class="fa-solid fa-check"></i></button>
+                                <button onclick="processSingle('${claim.id}', 'Rejected')" class="w-8 h-8 rounded-lg bg-red-50 text-red-600 hover:bg-red-500 hover:text-white border border-red-200 transition"><i class="fa-solid fa-xmark"></i></button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                tbody.insertAdjacentHTML('beforeend', row);
+            });
+
+            // Pasang event listener ke checkbox yang baru dirender
+            document.querySelectorAll('.claim-cb').forEach(cb => {
+                cb.addEventListener('change', toggleBulkToolbar);
+            });
+        };
+
+        // --- FUNGSI KENDALI CHECKBOX & TOOLBAR ---
+        const toggleBulkToolbar = () => {
+            const checkboxes = document.querySelectorAll('.claim-cb');
+            const checkedBoxes = Array.from(checkboxes).filter(cb => cb.checked);
+            const bulkDiv = document.getElementById('bulkActions');
+            const tableTitle = document.getElementById('tableTitle');
+            const selectAll = document.getElementById('selectAll');
+
+            if (checkedBoxes.length > 0) {
+                bulkDiv.classList.remove('hidden');
+                tableTitle.classList.add('hidden'); // Sembunyikan judul, ganti dengan toolbar
+                document.getElementById('selectedCount').textContent = checkedBoxes.length;
+            } else {
+                bulkDiv.classList.add('hidden');
+                tableTitle.classList.remove('hidden');
+            }
+
+            // Sync status checkbox "Select All"
+            selectAll.checked = checkedBoxes.length === checkboxes.length && checkboxes.length > 0;
+        };
+
+        // Master Checkbox Logic (Select All)
+        document.getElementById('selectAll').addEventListener('change', (e) => {
+            document.querySelectorAll('.claim-cb').forEach(cb => {
+                cb.checked = e.target.checked;
+            });
+            toggleBulkToolbar();
+        });
+
+        // --- FUNGSI UPDATE DATA ---
+        const processSingle = (claimId, newStatus) => {
+            if(confirm(`Are you sure you want to mark claim ${claimId} as ${newStatus}?`)) {
+                updateClaimStatus([claimId], newStatus);
+            }
+        };
+
+        const processBulk = (newStatus) => {
+            const checkedIds = Array.from(document.querySelectorAll('.claim-cb:checked')).map(cb => cb.value);
+            if(confirm(`You are about to mark ${checkedIds.length} claims as ${newStatus}. Proceed?`)) {
+                updateClaimStatus(checkedIds, newStatus);
+            }
+        };
+
+        const updateClaimStatus = (idsArray, newStatus) => {
+            let claims = JSON.parse(localStorage.getItem('medic_claims')) || [];
+            claims.forEach(c => {
+                if(idsArray.includes(c.id)) {
+                    c.status = newStatus;
+                }
+            });
+            localStorage.setItem('medic_claims', JSON.stringify(claims));
+            renderApprovals(); 
+        };
+
+        // Inisialisasi saat halaman dimuat
+        document.addEventListener("DOMContentLoaded", renderApprovals);
+    </script>
+
+    <style>
+        .animate-fade-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</body>
+</html>
