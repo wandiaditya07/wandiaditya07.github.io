@@ -1,1 +1,2 @@
-# wandiaditya07.github.io
+# getMedic. App
+provide a smart solution for medical claim
