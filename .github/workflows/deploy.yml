@@ -1,0 +1,38 @@
+name: Deploy Multi-Web
+
+on:
+  push:
+    branches: [ "Prod" ] # Ubah ke "master" jika branch utama Anda masih menggunakan nama lama
+  workflow_dispatch: # Tombol manual untuk menjalankan deploy dari dashboard GitHub
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: 'pages'
+  cancel-in-progress: true
+
+jobs:
+  deploy-portfolio:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload All Web Folders
+        uses: actions/upload-pages-artifact@v3
+        with:
+          # Tanda titik (.) artinya mengunggah semua folder web yang ada di repositori ini
+          path: '.' 
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
