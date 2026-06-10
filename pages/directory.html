@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Directory - getMedic.</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="../utils/layout.js" defer></script>
+</head>
+<body class="bg-slate-50 font-sans text-slate-800 flex h-screen overflow-hidden">
+
+    <div id="sidebar-container" class="flex-shrink-0 z-20"></div>
+
+    <div class="flex-1 flex flex-col min-w-0">
+        <div id="topbar-container"></div>
+
+        <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 relative">
+            <div class="max-w-6xl mx-auto space-y-6">
+                
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
+                    <div>
+                        <h1 class="text-2xl font-bold text-slate-900">Employee Directory</h1>
+                        <p class="text-sm text-slate-500 mt-1">Manage personnel data and annual medical limits.</p>
+                    </div>
+                    <button onclick="openEmployeeModal()" class="inline-flex items-center justify-center px-4 py-2.5 bg-slate-900 text-white rounded-lg text-sm font-semibold hover:bg-slate-800 shadow-sm transition">
+                        <i class="fa-solid fa-user-plus mr-2"></i> Add Employee
+                    </button>
+                </div>
+
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <div class="relative flex-1 max-w-sm">
+                        <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                        <input type="text" id="searchInput" placeholder="Search by name or ID..." class="w-full border border-slate-300 rounded-lg pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition">
+                    </div>
+                    <select id="deptFilter" class="border border-slate-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white cursor-pointer transition">
+                        <option value="All Departments">All Departments</option>
+                        <option value="IT & Engineering">IT & Engineering</option>
+                        <option value="Human Resources">Human Resources</option>
+                        <option value="Marketing">Marketing</option>
+                    </select>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm text-slate-600 whitespace-nowrap">
+                            <thead class="bg-slate-50 border-b border-slate-200 text-slate-700 font-bold">
+                                <tr>
+                                    <th class="px-6 py-4">Employee</th>
+                                    <th class="px-6 py-4">Department</th>
+                                    <th class="px-6 py-4">Role Access</th>
+                                    <th class="px-6 py-4 text-right">Annual Limit</th>
+                                    <th class="px-6 py-4 text-right">Balance Left</th>
+                                    <th class="px-6 py-4 text-center">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="directoryTableBody" class="divide-y divide-slate-100">
+                                </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <div id="employeeModal" class="fixed inset-0 bg-slate-900/60 z-50 hidden flex items-center justify-center backdrop-blur-sm px-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform scale-95 transition-transform duration-300" id="modalContent">
+            <div class="bg-slate-900 px-6 py-4 flex justify-between items-center">
+                <h2 id="modalTitle" class="text-lg font-bold text-white">Add New Employee</h2>
+                <button onclick="closeEmployeeModal()" class="text-slate-400 hover:text-white transition"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            <form id="employeeForm" class="p-6 space-y-4">
+                <input type="hidden" id="editUserId" value="">
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1">Employee ID</label>
+                        <input type="text" id="formEmpId" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1">Full Name</label>
+                        <input type="text" id="formName" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1">Department</label>
+                        <select id="formDept" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                            <option value="IT & Engineering">IT & Engineering</option>
+                            <option value="Human Resources">Human Resources</option>
+                            <option value="Marketing">Marketing</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1">System Role</label>
+                        <select id="formRole" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                            <option value="employee">Employee</option>
+                            <option value="manager">Manager</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Annual Medical Limit ($)</label>
+                    <input type="number" id="formLimit" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+
+                <div class="pt-4 mt-2 border-t border-slate-100 flex justify-end gap-3">
+                    <button type="button" onclick="closeEmployeeModal()" class="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg transition">Cancel</button>
+                    <button type="submit" class="px-4 py-2 text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 rounded-lg shadow-sm transition">Save Data</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Data Utama
+        let allUsers = JSON.parse(localStorage.getItem('medic_users')) || [];
+
+        // 1. Fungsi Render Tabel (Termasuk fitur Filter & Search)
+        const renderDirectory = () => {
+            const searchObj = document.getElementById('searchInput').value.toLowerCase();
+            const deptObj = document.getElementById('deptFilter').value;
+            const tbody = document.getElementById('directoryTableBody');
+
+            // Logika Filter
+            const filteredUsers = allUsers.filter(user => {
+                const matchSearch = user.name.toLowerCase().includes(searchObj) || user.id.toLowerCase().includes(searchObj);
+                const matchDept = deptObj === 'All Departments' || user.dept === deptObj;
+                return matchSearch && matchDept;
+            });
+
+            tbody.innerHTML = '';
+
+            if(filteredUsers.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-6 text-slate-500 font-medium"><i class="fa-solid fa-users-slash text-2xl mb-2 text-slate-300 block"></i> No employees found.</td></tr>';
+                return;
+            }
+
+            filteredUsers.forEach(user => {
+                // Jangan tampilkan tombol delete jika itu adalah akun Admin utama atau akun yang sedang login
+                const sessionData = JSON.parse(localStorage.getItem('medic_session'));
+                const isSelf = sessionData && sessionData.id === user.id;
+                
+                const deleteBtnClass = (isSelf || user.id === 'ADM-9999') ? 'opacity-30 cursor-not-allowed' : 'text-slate-400 hover:text-red-500';
+                const deleteAction = (isSelf || user.id === 'ADM-9999') ? '' : `onclick="deleteEmployee('${user.id}')"`;
+
+                const row = `
+                    <tr class="hover:bg-slate-50/80 transition">
+                        <td class="px-6 py-4">
+                            <div class="flex items-center gap-3">
+                                <img src="${user.avatar || 'https://ui-avatars.com/api/?name='+user.name+'&background=random&color=fff'}" class="w-8 h-8 rounded-full shadow-sm" alt="Avatar">
+                                <div>
+                                    <p class="font-bold text-slate-900">${user.name}</p>
+                                    <p class="text-xs text-slate-500">${user.id}</p>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 font-medium">${user.dept}</td>
+                        <td class="px-6 py-4 uppercase text-xs font-bold tracking-wider text-slate-500">${user.role}</td>
+                        <td class="px-6 py-4 text-right font-medium">$${parseFloat(user.limit).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                        <td class="px-6 py-4 text-right font-bold text-emerald-600">$${parseFloat(user.balance).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                        <td class="px-6 py-4 text-center">
+                            <div class="flex items-center justify-center gap-3">
+                                <button onclick="openEmployeeModal('${user.id}')" class="text-slate-400 hover:text-blue-600 transition" title="Edit"><i class="fa-solid fa-pen-to-square"></i></button>
+                                <button ${deleteAction} class="${deleteBtnClass} transition" title="Delete"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                tbody.insertAdjacentHTML('beforeend', row);
+            });
+        };
+
+        // 2. Fungsi Delete Employee
+        const deleteEmployee = (id) => {
+            if(confirm(`WARNING: Are you sure you want to delete employee ${id}? This action cannot be undone.`)) {
+                allUsers = allUsers.filter(user => user.id !== id);
+                localStorage.setItem('medic_users', JSON.stringify(allUsers));
+                renderDirectory(); // Refresh tabel
+            }
+        };
+
+        // 3. Fungsi Kendali Modal (Buka / Tutup / Isi Data)
+        const modal = document.getElementById('employeeModal');
+        const modalContent = document.getElementById('modalContent');
+        
+        const openEmployeeModal = (editId = null) => {
+            modal.classList.remove('hidden');
+            setTimeout(() => modalContent.classList.remove('scale-95'), 10);
+
+            if (editId) {
+                // Mode Edit
+                document.getElementById('modalTitle').textContent = 'Edit Employee';
+                const user = allUsers.find(u => u.id === editId);
+                document.getElementById('editUserId').value = user.id; // Simpan ID asli
+                document.getElementById('formEmpId').value = user.id;
+                document.getElementById('formName').value = user.name;
+                document.getElementById('formDept').value = user.dept;
+                document.getElementById('formRole').value = user.role;
+                document.getElementById('formLimit').value = user.limit;
+            } else {
+                // Mode Add Baru
+                document.getElementById('modalTitle').textContent = 'Add New Employee';
+                document.getElementById('employeeForm').reset();
+                document.getElementById('editUserId').value = '';
+            }
+        };
+
+        const closeEmployeeModal = () => {
+            modalContent.classList.add('scale-95');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        };
+
+        // 4. Fungsi Simpan Form (Insert / Update ke LocalStorage)
+        document.getElementById('employeeForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const editId = document.getElementById('editUserId').value;
+            const newId = document.getElementById('formEmpId').value;
+            const newName = document.getElementById('formName').value;
+            const newLimit = parseFloat(document.getElementById('formLimit').value);
+            
+            const userData = {
+                id: newId,
+                name: newName,
+                dept: document.getElementById('formDept').value,
+                role: document.getElementById('formRole').value,
+                limit: newLimit,
+                balance: newLimit, // Untuk demo, jika disave ulang anggap balance ter-reset sama dengan limit
+                password: 'password123', // Default password
+                avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(newName)}&background=random&color=fff`
+            };
+
+            if (editId) {
+                // Proses Update
+                const index = allUsers.findIndex(u => u.id === editId);
+                // Pertahankan balance asli jika sedang diedit (biar ga keriset 100%)
+                userData.balance = allUsers[index].balance; 
+                userData.password = allUsers[index].password;
+                allUsers[index] = userData;
+            } else {
+                // Proses Insert (Cek ID kembar)
+                if(allUsers.find(u => u.id === newId)) {
+                    alert('Error: Employee ID already exists!');
+                    return;
+                }
+                allUsers.push(userData);
+            }
+
+            localStorage.setItem('medic_users', JSON.stringify(allUsers));
+            closeEmployeeModal();
+            renderDirectory();
+        });
+
+        // Event Listeners untuk Filter Otomatis
+        document.getElementById('searchInput').addEventListener('input', renderDirectory);
+        document.getElementById('deptFilter').addEventListener('change', renderDirectory);
+
+        // Eksekusi Render Pertama Kali
+        document.addEventListener('DOMContentLoaded', renderDirectory);
+
+    </script>
+</body>
+</html>

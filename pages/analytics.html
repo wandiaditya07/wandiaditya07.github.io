@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics & EOB - getMedic.</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="../utils/layout.js" defer></script>
+</head>
+<body class="bg-slate-50 font-sans text-slate-800 flex h-screen overflow-hidden">
+
+    <div id="sidebar-container" class="flex-shrink-0 z-20"></div>
+
+    <div class="flex-1 flex flex-col min-w-0">
+        <div id="topbar-container"></div>
+
+        <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+            <div class="max-w-6xl mx-auto space-y-6">
+                
+                <div class="mb-2 flex flex-col sm:flex-row justify-between sm:items-end gap-4">
+                    <div>
+                        <h1 class="text-2xl font-bold text-slate-900">Analytics & EOB Statements</h1>
+                        <p class="text-sm text-slate-500 mt-1">Review financial reports and download official Explanation of Benefits.</p>
+                    </div>
+                    <select class="border border-slate-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white font-semibold text-slate-700 shadow-sm cursor-pointer">
+                        <option>Year to Date (YTD)</option>
+                        <option>Last 30 Days</option>
+                        <option>Q3 2026</option>
+                    </select>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between hover:shadow-md transition">
+                        <div>
+                            <p class="text-sm font-bold text-slate-500 mb-1">Total Claims YTD</p>
+                            <h3 class="text-3xl font-black text-slate-900" id="totalClaims">0</h3>
+                        </div>
+                        <div class="w-14 h-14 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center text-2xl"><i class="fa-solid fa-file-waveform"></i></div>
+                    </div>
+                    <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between hover:shadow-md transition">
+                        <div>
+                            <p class="text-sm font-bold text-slate-500 mb-1">Total Reimbursed</p>
+                            <h3 class="text-3xl font-black text-slate-900" id="totalReimbursed">$0.00</h3>
+                        </div>
+                        <div class="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center text-2xl"><i class="fa-solid fa-hand-holding-dollar"></i></div>
+                    </div>
+                    <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between hover:shadow-md transition">
+                        <div>
+                            <p class="text-sm font-bold text-slate-500 mb-1">Rejection Rate</p>
+                            <h3 class="text-3xl font-black text-slate-900" id="rejectionRate">0%</h3>
+                        </div>
+                        <div class="w-14 h-14 bg-red-50 text-red-600 rounded-full flex items-center justify-center text-2xl"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                        <h2 class="font-bold text-slate-800"><i class="fa-solid fa-file-contract mr-2 text-slate-400"></i> Generated EOB Documents</h2>
+                        <button onclick="alert('Downloading all EOBs as ZIP...')" class="text-sm font-bold text-blue-600 hover:text-blue-800 transition flex items-center">
+                            <i class="fa-solid fa-download mr-1.5"></i> Download All
+                        </button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm text-slate-600 whitespace-nowrap">
+                            <thead class="bg-white border-b border-slate-200 text-slate-700 font-bold">
+                                <tr>
+                                    <th class="px-6 py-4">Statement Date</th>
+                                    <th class="px-6 py-4">Related Claim ID</th>
+                                    <th class="px-6 py-4">Patient (Employee)</th>
+                                    <th class="px-6 py-4 text-right">Net Payment</th>
+                                    <th class="px-6 py-4 text-center">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="eobTableBody" class="divide-y divide-slate-100">
+                                </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            // Ambil semua klaim dari database
+            const claims = JSON.parse(localStorage.getItem('medic_claims')) || [];
+
+            // 1. Hitung Total Claims
+            const totalClaims = claims.length;
+            document.getElementById('totalClaims').textContent = totalClaims;
+
+            // 2. Hitung Total Reimbursed (Hanya yang Approved / Settled)
+            const successfulClaims = claims.filter(c => c.status === 'Approved' || c.status === 'Settled');
+            const totalReimbursed = successfulClaims.reduce((sum, current) => sum + current.amount, 0);
+            document.getElementById('totalReimbursed').textContent = '$' + totalReimbursed.toLocaleString('en-US', {minimumFractionDigits: 2});
+
+            // 3. Hitung Rejection Rate
+            const rejectedClaims = claims.filter(c => c.status === 'Rejected');
+            const rejectionRate = totalClaims > 0 ? (rejectedClaims.length / totalClaims) * 100 : 0;
+            document.getElementById('rejectionRate').textContent = rejectionRate.toFixed(1) + '%';
+
+            // 4. Render Tabel EOB
+            const tbody = document.getElementById('eobTableBody');
+            tbody.innerHTML = '';
+
+            // EOB hanya digenerate untuk klaim yang berhasil (Approved/Settled)
+            if(successfulClaims.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-slate-500 font-medium"><i class="fa-solid fa-folder-open text-3xl mb-3 text-slate-300 block"></i>No EOB documents generated yet. Approve a claim first!</td></tr>';
+                return;
+            }
+
+            successfulClaims.forEach(claim => {
+                // Format tanggal agar terlihat seperti "Oct 28, 2026"
+                const dateObj = new Date(claim.date);
+                const formattedDate = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+                const row = `
+                    <tr class="hover:bg-slate-50/80 transition group">
+                        <td class="px-6 py-4 font-semibold text-slate-600"><i class="fa-regular fa-calendar mr-2 text-slate-400"></i> ${formattedDate}</td>
+                        <td class="px-6 py-4 font-bold text-slate-900">${claim.id}</td>
+                        <td class="px-6 py-4 font-medium text-slate-700">${claim.userName}</td>
+                        <td class="px-6 py-4 text-right font-black text-emerald-600">$${claim.amount.toFixed(2)}</td>
+                        <td class="px-6 py-4 text-center flex justify-center">
+                            <button onclick="downloadEOB('${claim.id}')" class="px-3 py-1.5 bg-white border border-slate-200 hover:border-red-200 hover:bg-red-50 text-slate-700 hover:text-red-600 rounded-md text-xs font-bold transition flex items-center shadow-sm">
+                                <i class="fa-solid fa-file-pdf text-red-500 mr-1.5"></i> View PDF
+                            </button>
+                        </td>
+                    </tr>
+                `;
+                tbody.insertAdjacentHTML('beforeend', row);
+            });
+        });
+
+        // Fungsi interaktif tombol download
+        function downloadEOB(claimId) {
+            alert(`Generating official EOB PDF for Claim ${claimId}...\n\n(This is a demo feature. In a real application, this would download a generated PDF statement.)`);
+        }
+    </script>
+</body>
+</html>
